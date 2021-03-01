@@ -1,7 +1,13 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/osuushi/decisive-engine/parser"
+)
 
 func main() {
-	fmt.Println("hello world")
+	result, err := parser.Parse("@foo{3} bar: @baz{5} @atsign@")
+	fmt.Printf("%#v\n", result)
+	fmt.Println(err)
 }
