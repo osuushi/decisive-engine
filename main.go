@@ -5,14 +5,14 @@ import (
 	"os"
 
 	"github.com/kr/pretty"
-	"github.com/osuushi/decisive-engine/parser"
+	"github.com/osuushi/decisive-engine/template"
 )
 
 func main() {
 	input := os.Args[1]
 	fmt.Println("Input:", input)
 	fmt.Println()
-	result, err := parser.Parse(input)
+	result, err := template.Parse(input)
 	pretty.Println(result)
 	fmt.Println(err)
 }
