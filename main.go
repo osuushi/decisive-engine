@@ -15,7 +15,13 @@ func main() {
 	fmt.Println()
 	template, err := template.Parse(input)
 	row := render.NewRow(template, 100)
-
-	pretty.Println(row.Render(nil))
+	pretty.Println(row.Render(map[string]interface{}{
+		"foo": "142",
+		"bar": "world",
+	}))
+	pretty.Println(row.Render(map[string]interface{}{
+		"foo": "long",
+		"bar": "world",
+	}))
 	fmt.Println(err)
 }

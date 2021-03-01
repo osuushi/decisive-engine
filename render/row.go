@@ -6,7 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/osuushi/decisive-engine/template"
-	// "github.com/spf13/cast"
+	"github.com/spf13/cast"
 )
 
 type Row struct {
@@ -81,8 +81,32 @@ func (self *Row) Render(data map[string]interface{}) string {
 	return strings.Join(parts, "")
 }
 
+func padRunes(runes []rune, length int) []rune {
+	result := make([]rune, length)
+	copy(result, runes)
+	for i := len(runes); i < length; i++ {
+		result[i] = ' '
+	}
+	return result
+}
+
+func truncateRunes(runes []rune, length int) []rune {
+	result := make([]rune, length)
+	copy(result, runes)
+	result[length-1] = '…'
+	return result
+}
+
 func (self *Row) RenderFieldNodeAtIndex(index int, data map[string]interface{}) string {
 	node := self.Template[index]
-	key := node.Value
-	return "TODO " + key
+	width := self.Widths[index]
+	rawString := cast.ToString(data[node.Value])
+	runes := []rune(rawString)
+	actualWidth := len(runes)
+	if actualWidth < width {
+		runes = padRunes(runes, width)
+	} else if actualWidth > width {
+		runes = truncateRunes(runes, width)
+	}
+	return string(runes)
 }
