@@ -2,12 +2,17 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/kr/pretty"
 	"github.com/osuushi/decisive-engine/parser"
 )
 
 func main() {
-	result, err := parser.Parse("@foo{3} bar: @baz{5} @atsign@")
-	fmt.Printf("%#v\n", result)
+	input := os.Args[1]
+	fmt.Println("Input:", input)
+	fmt.Println()
+	result, err := parser.Parse(input)
+	pretty.Println(result)
 	fmt.Println(err)
 }

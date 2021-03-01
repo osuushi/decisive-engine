@@ -1,9 +1,14 @@
 package parser
 
 import (
+	"encoding/hex"
 	"fmt"
+	"image/color"
 	"strconv"
+	"strings"
 	"unicode"
+
+	"golang.org/x/image/colornames"
 )
 
 // Parse a row format.
@@ -27,6 +32,15 @@ type Node struct {
 	// The amount of padding (for fields only)
 	// zero means fill
 	Padding int
+	// Formatting; nil for literals
+	FieldFormatting *FieldFormatting
+}
+
+type FieldFormatting struct {
+	// Color for field node; nil means default
+	Color *color.RGBA
+	// Styling
+	Bold, Italic, Underline bool
 }
 
 func Parse(s string) ([]Node, error) {
@@ -56,10 +70,63 @@ func parseNode(s string) (*Node, string, error) {
 	}
 }
 
+// Try to decode a hex color, or return nil if it's not valid
+func decodeHexColor(s string) *color.RGBA {
+	bytes, err := hex.DecodeString(s)
+	if err != nil {
+		return nil
+	}
+	if len(bytes) != 3 {
+		return nil
+	}
+	return &color.RGBA{bytes[0], bytes[1], bytes[2], 0xFF}
+}
+
+func (self *Node) parseFieldSpecifier(s string) error {
+	parts := strings.Split(s, ".")
+	value, formats := parts[0], parts[1:]
+	formatting := FieldFormatting{}
+
+	for _, format := range formats {
+		switch format {
+		case "bold":
+			formatting.Bold = true
+		case "italic":
+			formatting.Italic = true
+		case "underline":
+			formatting.Underline = true
+		default:
+			alreadyHasColor := formatting.Color != nil
+			addedNewColor := false
+			// See if this is a crayon name
+			color, ok := colornames.Map[format]
+			if ok {
+				formatting.Color = &color
+				addedNewColor = true
+			} else if colorPtr := decodeHexColor(format); colorPtr != nil {
+				formatting.Color = colorPtr
+				addedNewColor = true
+			} else {
+				return fmt.Errorf("Invalid field format: %s in %s", format, s)
+			}
+			if alreadyHasColor && addedNewColor {
+				return fmt.Errorf("Cannot add second color %s in %s", format, s)
+			}
+		}
+	}
+
+	self.Value = value
+	self.FieldFormatting = &formatting
+	return nil
+}
+
 func parseFieldNode(s string) (*Node, string, error) {
-	result := ""
+	specifier := ""     // the text of the field not including any padding term
+	remainder := "\x00" // null to indicate no special remainder
 	var i int
 	node := Node{IsField: true}
+
+scan:
 	for i = 1; i < len(s); i++ { // skip leading @
 		r := s[i]
 		switch r {
@@ -68,27 +135,35 @@ func parseFieldNode(s string) (*Node, string, error) {
 				return nil, "", fmt.Errorf("Unexpected end of string; expected padding followed by }")
 			}
 			// Chop off curly and parse
-			remainder := s[i+1:]
-			padding, remainder, err := parseFieldPadding(remainder)
+			remainder = s[i+1:]
+			var padding int
+			var err error
+			padding, remainder, err = parseFieldPadding(remainder)
 			if err != nil {
 				return nil, "", err
 			}
-			node.Value = result
 			node.Padding = padding
-			return &node, remainder, nil
-		case ' ':
-			node.Value = result
-			return &node, s[i+1:], nil
-		case '@':
-			node.Value = result
-			return &node, s[i:], nil
+			break scan
+		case ' ', '@':
+			break scan
 		default:
-			result += string(r)
+			// Not a special character. Note that the character may still be invalid,
+			// in which case we will find that in *Node.parseFieldSpecifier before
+			// returning the node.
+			specifier += string(r)
 		}
 	}
-	// This is the end of the input
-	node.Value = result
-	return &node, "", nil
+
+	err := node.parseFieldSpecifier(specifier)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if remainder == "\x00" {
+		// No special remainder; slice the input string from i
+		remainder = s[i:]
+	}
+	return &node, remainder, nil
 }
 
 func parseFieldPadding(s string) (int, string, error) {
@@ -122,7 +197,7 @@ func parseLiteralNode(s string) (*Node, string, error) {
 		case '@':
 			// Look ahead to see if this is an escape
 			if i == len(s)-1 {
-				return nil, "", fmt.Errorf("Unexpected end of input")
+				return nil, "", fmt.Errorf("Unexpected end of input in literal")
 			} else if s[i+1] == '@' {
 				// Escaped atsign
 				result += string(r)
