@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/kr/pretty"
+	"github.com/osuushi/decisive-engine/render"
 	"github.com/osuushi/decisive-engine/template"
 )
 
@@ -12,7 +13,9 @@ func main() {
 	input := os.Args[1]
 	fmt.Println("Input:", input)
 	fmt.Println()
-	result, err := template.Parse(input)
-	pretty.Println(result)
+	template, err := template.Parse(input)
+	row := render.NewRow(template, 100)
+
+	pretty.Println(template)
 	fmt.Println(err)
 }
