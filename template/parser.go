@@ -36,6 +36,8 @@ type Node struct {
 	FieldFormatting *FieldFormatting
 }
 
+type Template []Node
+
 type FieldFormatting struct {
 	// Color for field node; nil means default
 	Color *color.RGBA
@@ -43,16 +45,16 @@ type FieldFormatting struct {
 	Bold, Italic, Underline bool
 }
 
-func Parse(s string) ([]Node, error) {
+func Parse(s string) (Template, error) {
 	if len(s) == 0 {
-		return make([]Node, 0), nil
+		return make(Template, 0), nil
 	}
 
 	firstNode, remainder, err := parseNode(s)
 	if err != nil {
 		return nil, err
 	}
-	nodes := []Node{*firstNode}
+	nodes := Template{*firstNode}
 
 	remainingNodes, err := Parse(remainder)
 	if err != nil {
