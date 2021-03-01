@@ -14,14 +14,14 @@ import (
 // Parse a row format.
 // Example: "Title: @title{15} Description: @desc"
 // @ prefixed implies an interpolated field.
-// {} indicates padding width
-// If no padding width is given, that field expands to fill space
-//   if multiple fields have no padding value, they will divide up
+// {N} indicates width
+// If no width is given, that field expands to fill space
+//   if multiple fields have no width value, they will divide up
 //   the free space
 // @@ is used to print a literal @ (cannot appear in field key)
-// Two literals cannot be adjacent or have their own padding value
+// Two literals cannot be adjacent or have their own width value
 // All spaces are included in literals.
-// Extra spaces between adjacent fields are ignored; use padding instead
+// Extra spaces between adjacent fields are ignored; use width instead
 
 type Node struct {
 	// If false, this is a literal string
@@ -29,9 +29,9 @@ type Node struct {
 	// For fields, the value is the key (no @ included)
 	// For literals, it is the literal value (with escaped @s unescaped)
 	Value string
-	// The amount of padding (for fields only)
+	// The amount of width to pad to (for fields only)
 	// zero means fill
-	Padding int
+	Width int
 	// Formatting; nil for literals
 	FieldFormatting *FieldFormatting
 }
@@ -121,7 +121,7 @@ func (self *Node) parseFieldSpecifier(s string) error {
 }
 
 func parseFieldNode(s string) (*Node, string, error) {
-	specifier := ""     // the text of the field not including any padding term
+	specifier := ""     // the text of the field not including any width term
 	remainder := "\x00" // null to indicate no special remainder
 	var i int
 	node := Node{IsField: true}
@@ -132,17 +132,17 @@ scan:
 		switch r {
 		case '{':
 			if i >= len(s)-2 {
-				return nil, "", fmt.Errorf("Unexpected end of string; expected padding followed by }")
+				return nil, "", fmt.Errorf("Unexpected end of string; expected width followed by }")
 			}
 			// Chop off curly and parse
 			remainder = s[i+1:]
-			var padding int
+			var width int
 			var err error
-			padding, remainder, err = parseFieldPadding(remainder)
+			width, remainder, err = parseFieldWidth(remainder)
 			if err != nil {
 				return nil, "", err
 			}
-			node.Padding = padding
+			node.Width = width
 			break scan
 		case ' ', '@':
 			break scan
@@ -166,16 +166,16 @@ scan:
 	return &node, remainder, nil
 }
 
-func parseFieldPadding(s string) (int, string, error) {
+func parseFieldWidth(s string) (int, string, error) {
 	result := ""
 	for i, r := range s {
 		// Handle close brace case
 		if r == '}' {
 			if result == "" {
-				return 0, "", fmt.Errorf("Unexpected empty padding. Expected digits.")
+				return 0, "", fmt.Errorf("Unexpected empty width. Expected digits.")
 			}
-			padding, _ := strconv.Atoi(result)
-			return padding, s[i+1:], nil
+			width, _ := strconv.Atoi(result)
+			return width, s[i+1:], nil
 		}
 
 		if unicode.IsDigit(r) {
@@ -184,7 +184,7 @@ func parseFieldPadding(s string) (int, string, error) {
 			return 0, "", fmt.Errorf("Unexpected character '%s'; expected digit", string(r))
 		}
 	}
-	return 0, "", fmt.Errorf("Unexpected end of input in padding string")
+	return 0, "", fmt.Errorf("Unexpected end of input in width string")
 }
 
 func parseLiteralNode(s string) (*Node, string, error) {
