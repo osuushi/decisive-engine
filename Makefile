@@ -1,2 +1,2 @@
 build: *.go
-	go build -o bin/ -v
+	go build -o bin/decisive-engine -v
