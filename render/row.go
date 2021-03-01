@@ -66,7 +66,7 @@ func (self *Row) init() {
 	}
 }
 
-func (self *Row) render(data map[string]interface{}) string {
+func (self *Row) Render(data map[string]interface{}) string {
 	// Builder
 	parts := make([]string, len(self.Template))
 
@@ -84,4 +84,5 @@ func (self *Row) render(data map[string]interface{}) string {
 func (self *Row) RenderFieldNodeAtIndex(index int, data map[string]interface{}) string {
 	node := self.Template[index]
 	key := node.Value
+	return "TODO " + key
 }

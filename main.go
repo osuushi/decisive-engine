@@ -16,6 +16,6 @@ func main() {
 	template, err := template.Parse(input)
 	row := render.NewRow(template, 100)
 
-	pretty.Println(template)
+	pretty.Println(row.Render(nil))
 	fmt.Println(err)
 }
