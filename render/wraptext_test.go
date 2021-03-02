@@ -30,3 +30,46 @@ func TestWrapLine(t *testing.T) {
 	check("excellent, a test, how entertaining", 6,
 		[]string{"excell", "ent, a", "test,", "how", "entert", "aining"})
 }
+
+func TestAlignLineJustify(t *testing.T) {
+	check := func(input string, width int, expected string) {
+		actual := alignLineJustify(input, width)
+		if !reflect.DeepEqual(actual, expected) {
+			t.Errorf(
+				"alignTextJustify(%#v, %#v)\nExpected:\n%#v\nActual:\n%#v",
+				input,
+				width,
+				expected,
+				actual,
+			)
+		}
+	}
+	check("hello world", 13, "hello   world")
+	check(
+		"Is this the real life? Is this just fantasy?", 60,
+		"Is   this   the   real   life?   Is   this   just   fantasy?",
+	)
+	check(
+		"Is this the real life? Is this just fantasy?", 58,
+		"Is   this   the  real   life?   Is   this  just   fantasy?",
+	)
+	check(
+		"Is this the real life? Is this just fantasy?", 55,
+		"Is  this   the  real   life?  Is  this   just  fantasy?",
+	)
+
+	check(
+		"Because I'm easy come easy go", 53,
+		"Because      I'm      easy     come      easy      go",
+	)
+
+	check(
+		"Because I'm easy come eásy go", 53,
+		"Because      I'm      easy     come      eásy      go",
+	)
+
+	check(
+		"This \t sentence  has    weird  spaces", 38,
+		"This   sentence   has   weird   spaces",
+	)
+}

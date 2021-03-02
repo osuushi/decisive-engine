@@ -1,6 +1,24 @@
 package render
 
-import "strings"
+import (
+	"fmt"
+	"math"
+	"regexp"
+	"strings"
+	"unicode/utf8"
+
+	"github.com/osuushi/decisive-engine/template"
+)
+
+var wordSplitPattern *regexp.Regexp
+
+func init() {
+	var err error
+	wordSplitPattern, err = regexp.Compile("\\s+")
+	if err != nil {
+		panic(err)
+	}
+}
 
 // Wrap a string to a given width. Returns a slice wher for each line in the
 // original string, there is a slice of wrapped lines. If a word is longer than
@@ -15,6 +33,105 @@ func wrapText(s string, width int) [][]string {
 		output[i] = wrapLine(p, width)
 	}
 	return output
+}
+
+// Take the output of wrapText and apply an alignment to it. All output strings
+// inside the structure will be exactly `width` when returned
+func alignText(paragraphs [][]string, width int, alignment template.Alignment) [][]string {
+	output := make([][]string, len(paragraphs))
+	for i, p := range paragraphs {
+		output[i] = alignParagraph(p, width, alignment)
+	}
+	return output
+}
+
+func alignParagraph(lines []string, width int, alignment template.Alignment) []string {
+	output := make([]string, len(lines))
+	i := 0
+
+	// Last line gets special treatment
+	for ; i < len(lines)-1; i++ {
+		output[i] = alignLine(lines[i], width, alignment)
+	}
+
+	// If justified, last line is left aligned
+	if alignment == template.AlignmentJustify {
+		alignment = template.AlignmentLeft
+	}
+
+	output[i] = alignLine(lines[i], width, alignment)
+	return output
+}
+
+func alignLine(s string, width int, alignment template.Alignment) string {
+	switch alignment {
+	case template.AlignmentDefault, template.AlignmentLeft:
+		return alignLineLeft(s, width)
+	case template.AlignmentRight:
+		return alignLineRight(s, width)
+	case template.AlignmentCenter:
+		return alignLineCenter(s, width)
+	case template.AlignmentJustify:
+		return alignLineJustify(s, width)
+	default:
+		panic(fmt.Sprintf("Unknown alignment value %v", alignment))
+	}
+}
+
+func alignLineLeft(s string, width int) string {
+	return s + strings.Repeat(" ", spacesNeeded(s, width))
+}
+
+func alignLineRight(s string, width int) string {
+	return strings.Repeat(" ", spacesNeeded(s, width)) + s
+}
+
+func alignLineCenter(s string, width int) string {
+	needed := spacesNeeded(s, width)
+	// Note that in the case of odd spacing, we have to put the remainder
+	// somewhere
+	left := needed / 2
+	right := needed - left
+	return strings.Join([]string{
+		strings.Repeat(" ", left),
+		s,
+		strings.Repeat(" ", right),
+	}, "")
+}
+
+func alignLineJustify(s string, width int) string {
+	// Split into words
+	words := wordSplitPattern.Split(s, -1)
+
+	gapCount := len(words) - 1
+
+	parts := make([]string, len(words)+gapCount)
+
+	totalLength := 0
+	for _, word := range words {
+		totalLength += utf8.RuneCountInString(word)
+	}
+
+	// Fractional width we'd like a gap to be; errors will diffuse into this value
+	idealGapWidth := float64(width-totalLength) / float64(gapCount)
+	lastError := 0.0
+	// Divide amount of free width between gaps between words
+	var i int
+	for i = 0; i < len(words)-1; i++ {
+		parts[2*i] = words[i]
+		// Diffuse error
+		correctedWidth := idealGapWidth - lastError
+		actualGapWidth := int(math.Round(correctedWidth))
+		lastError = float64(actualGapWidth) - correctedWidth
+		parts[2*i+1] = strings.Repeat(" ", actualGapWidth)
+	}
+	parts[2*i] = words[i]
+
+	return strings.Join(parts, "")
+}
+
+func spacesNeeded(s string, width int) int {
+	return width - utf8.RuneCountInString(s)
 }
 
 func lastIndexOf(haystack []rune, needle rune) int {
