@@ -18,7 +18,7 @@ func main() {
 	fmt.Println()
 	row := render.NewRow(template, 150)
 	pretty.Println(row.Render(map[string]interface{}{
-		"foo": "142",
+		"foo": "This is some very long text that doesn't even fit on a single line",
 		"bar": "world",
 	}))
 	pretty.Println(row.Render(map[string]interface{}{
