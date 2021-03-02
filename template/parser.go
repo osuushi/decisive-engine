@@ -66,15 +66,41 @@ func (self *Node) parseFieldSpecifier(s string) error {
 	parts := strings.Split(s, ".")
 	value, formats := parts[0], parts[1:]
 	formatting := FieldFormatting{}
+	updateBoolOnce := func(name string, boolPtr *bool) error {
+		if *boolPtr {
+			return fmt.Errorf("Cannot specify %s more than once", name)
+		}
+		*boolPtr = true
+		return nil
+	}
 
 	for _, format := range formats {
-		switch format {
-		case "bold":
-			formatting.Bold = true
-		case "italic":
-			formatting.Italic = true
-		case "underline":
-			formatting.Underline = true
+		switch {
+		case format == "bold":
+			err := updateBoolOnce("bold", &formatting.Bold)
+			if err != nil {
+				return err
+			}
+		case format == "italic":
+			err := updateBoolOnce("italic", &formatting.Italic)
+			if err != nil {
+				return err
+			}
+		case format == "underline":
+			err := updateBoolOnce("underline", &formatting.Underline)
+			if err != nil {
+				return err
+			}
+		case format == "wrap":
+			err := updateBoolOnce("wrap", &formatting.Wrap)
+			if err != nil {
+				return err
+			}
+		case isAlignmentName(format):
+			if formatting.Alignment != AlignmentDefault {
+				return fmt.Errorf("Cannot specify more than one alignment in %s", s)
+			}
+			formatting.Alignment = AlignmentsByName[format]
 		default:
 			alreadyHasColor := formatting.Color != nil
 			addedNewColor := false

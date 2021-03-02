@@ -21,5 +21,29 @@ type FieldFormatting struct {
 	// Color for field node; nil means default
 	Color *color.RGBA
 	// Styling
-	Bold, Italic, Underline bool
+	Bold, Italic, Underline, Wrap bool
+	Alignment                     Alignment
+}
+
+type Alignment int
+
+const (
+	AlignmentDefault Alignment = iota
+	AlignmentLeft
+	AlignmentRight
+	AlignmentCenter
+	AlignmentJustify
+)
+
+var AlignmentsByName map[string]Alignment = map[string]Alignment{
+	// Note no default; default cannot be specified as a tag
+	"left":    AlignmentLeft,
+	"right":   AlignmentRight,
+	"center":  AlignmentCenter,
+	"justify": AlignmentJustify,
+}
+
+func isAlignmentName(name string) bool {
+	_, ok := AlignmentsByName[name]
+	return ok
 }
