@@ -2,9 +2,11 @@ package render
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/kr/pretty"
+	"github.com/osuushi/decisive-engine/template"
 )
 
 func TestWrapLine(t *testing.T) {
@@ -72,4 +74,58 @@ func TestAlignLineJustify(t *testing.T) {
 		"This \t sentence  has    weird  spaces", 38,
 		"This   sentence   has   weird   spaces",
 	)
+}
+
+func TestAlignParagraph(t *testing.T) {
+	check := func(
+		input []string,
+		width int,
+		alignment template.Alignment,
+		expected []string,
+	) {
+		actual := alignParagraph(input, width, alignment)
+		if !reflect.DeepEqual(actual, expected) {
+			t.Errorf(
+				"alignParagraph(%#v, %#v)\nExpected:\n%s\nActual:\n%s",
+				input,
+				width,
+				"|"+strings.Join(expected, "|\n|")+"|",
+				"|"+strings.Join(actual, "|\n|")+"|",
+			)
+		}
+	}
+	input := []string{
+		"Whan that Aprille with his shoures soote,",
+		"The droghte of March hath perced to the roote,",
+		"And bathed every veyne in swich licóur",
+		"Of which vertú engendred is the flour;",
+	}
+
+	check(input, 46, template.AlignmentDefault, []string{
+		"Whan that Aprille with his shoures soote,     ",
+		"The droghte of March hath perced to the roote,",
+		"And bathed every veyne in swich licóur        ",
+		"Of which vertú engendred is the flour;        ",
+	})
+
+	check(input, 46, template.AlignmentLeft, []string{
+		"Whan that Aprille with his shoures soote,     ",
+		"The droghte of March hath perced to the roote,",
+		"And bathed every veyne in swich licóur        ",
+		"Of which vertú engendred is the flour;        ",
+	})
+
+	check(input, 46, template.AlignmentRight, []string{
+		"     Whan that Aprille with his shoures soote,",
+		"The droghte of March hath perced to the roote,",
+		"        And bathed every veyne in swich licóur",
+		"        Of which vertú engendred is the flour;",
+	})
+
+	check(input, 46, template.AlignmentJustify, []string{
+		"Whan  that  Aprille with  his  shoures  soote,",
+		"The droghte of March hath perced to the roote,",
+		"And  bathed   every  veyne  in   swich  licóur",
+		"Of which vertú engendred is the flour;        ",
+	})
 }
